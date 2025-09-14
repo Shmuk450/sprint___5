@@ -1,40 +1,46 @@
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+
 from locators import *
+from urls import BASE_URL
 from generators import gen_email, gen_password
+from data import FIRST_NAME, EMAIL_FIRST, EMAIL_LAST, EMAIL_COHORT, PASSWORD_LEN
 
-def open_login(driver):
-    driver.get(BASE_URL)
-    driver.find_element(*LOGIN_BTN_ON_MAIN).click()
 
-def go_to_register(driver):
-    open_login(driver)
-    driver.find_element(*REGISTER_LINK).click()
+class TestRegistration:
+    def test_success_registration(self, driver):
+        """Успешная регистрация: имя не пустое, email валидный, пароль ≥ 6."""
+        # Открыть форму регистрации
+        driver.get(BASE_URL)
+        driver.find_element(*LOGIN_BTN_ON_MAIN).click()
+        driver.find_element(*REGISTER_LINK).click()
 
-def test_success_registration(driver):
-    """Успешная регистрация: имя не пустое, email валидный, пароль ≥ 6"""
-    go_to_register(driver)
+        # Заполнить поля
+        driver.find_element(*REGISTER_NAME).send_keys(FIRST_NAME)
+        email = gen_email(EMAIL_FIRST, EMAIL_LAST, EMAIL_COHORT)
+        driver.find_element(*REGISTER_EMAIL).send_keys(email)
+        pwd = gen_password(PASSWORD_LEN)
+        driver.find_element(*REGISTER_PASSWORD).send_keys(pwd)
+        driver.find_element(*REGISTER_SUBMIT).click()
 
-    driver.find_element(*REGISTER_NAME).send_keys("Софья")
-    email = gen_email(first="sofia", last="student", cohort="1999")
-    driver.find_element(*REGISTER_EMAIL).send_keys(email)
-    pwd = gen_password(8)
-    driver.find_element(*REGISTER_PASSWORD).send_keys(pwd)
-    driver.find_element(*REGISTER_SUBMIT).click()
+        # Ожидание и проверка, что открылась форма логина
+        WebDriverWait(driver, 5).until(EC.visibility_of_element_located(LOGIN_SUBMIT))
+        assert driver.find_element(*LOGIN_SUBMIT).is_displayed()
 
-    # После успешной регистрации должна открыться форма логина (кнопка Войти видна)
-    WebDriverWait(driver, 5).until(EC.visibility_of_element_located(LOGIN_SUBMIT))
+    def test_registration_password_error(self, driver):
+        """Ошибка при коротком пароле (< 6)."""
+        # Открыть форму регистрации
+        driver.get(BASE_URL)
+        driver.find_element(*LOGIN_BTN_ON_MAIN).click()
+        driver.find_element(*REGISTER_LINK).click()
 
-def test_registration_password_error(driver):
-    """Ошибка для некорректного (короткого) пароля"""
-    go_to_register(driver)
+        # Заполнить поля с коротким паролем
+        driver.find_element(*REGISTER_NAME).send_keys(FIRST_NAME)
+        bad_email = gen_email(EMAIL_FIRST, EMAIL_LAST, EMAIL_COHORT)
+        driver.find_element(*REGISTER_EMAIL).send_keys(bad_email)
+        driver.find_element(*REGISTER_PASSWORD).send_keys("12345")  # 5 символов
+        driver.find_element(*REGISTER_SUBMIT).click()
 
-    driver.find_element(*REGISTER_NAME).send_keys("Софья")
-    driver.find_element(*REGISTER_EMAIL).send_keys(gen_email("sofia", "student", "1999"))
-    driver.find_element(*REGISTER_PASSWORD).send_keys("12345")   # 5 символов
-    driver.find_element(*REGISTER_SUBMIT).click()
-
-    # Отображается текст ошибки под полем
-    WebDriverWait(driver, 5).until(EC.visibility_of_element_located(REGISTER_ERROR))
-    
-    driver.quit()
+        # Ожидание и проверка текста ошибки
+        err = WebDriverWait(driver, 5).until(EC.visibility_of_element_located(REGISTER_ERROR))
+        assert err.is_displayed()

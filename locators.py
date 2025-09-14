@@ -1,8 +1,5 @@
 from selenium.webdriver.common.by import By
 
-# базовый адрес приложения
-BASE_URL = "https://stellarburgers.nomoreparties.site/"
-
 # Хедер / навигация
 LOGIN_BTN_ON_MAIN   = (By.XPATH, "//button[text()='Войти в аккаунт']")      # кнопка на главной
 PERSONAL_ACCOUNT = (By.XPATH, "//p[text()='Личный Кабинет']")           # ссылка «Личный Кабинет»
